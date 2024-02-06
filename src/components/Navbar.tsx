@@ -1,4 +1,6 @@
+import { Bot } from 'lucide-react';
 import Link from 'next/link';
+import ThemeToggle from './ThemeToggle';
 
 export default function Navbar() {
   return (
@@ -9,6 +11,9 @@ export default function Navbar() {
           <Link href='/about'>about me</Link>
           <Link href='/social'>social media</Link>
         </nav>
+        <div>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
