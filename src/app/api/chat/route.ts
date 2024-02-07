@@ -1,8 +1,10 @@
+import { getVectorStore } from '@/lib/astradb';
 import { ChatOpenAI } from '@langchain/openai';
 import { LangChainStream, OpenAIStream, StreamingTextResponse } from 'ai';
 import { ChatCompletionMessageParam } from 'ai/prompts';
 import { createStuffDocumentsChain } from 'langchain/chains/combine_documents';
-import { ChatPromptTemplate } from 'langchain/prompts';
+import { createRetrievalChain } from 'langchain/chains/retrieval';
+import { ChatPromptTemplate, PromptTemplate } from 'langchain/prompts';
 import OpenAI from 'openai';
 
 export async function POST(req: Request) {
@@ -18,6 +20,7 @@ export async function POST(req: Request) {
       modelName: 'gpt-3.5-turbo',
       streaming: true,
       callbacks: [handlers],
+      verbose: true,
     });
 
     const prompt = ChatPromptTemplate.fromMessages([
@@ -32,12 +35,23 @@ export async function POST(req: Request) {
       ['user', '{input}'],
     ]);
 
-    const combineDocsChains = await createStuffDocumentsChain({
+    const combineDocsChain = await createStuffDocumentsChain({
       llm: chatModel,
       prompt,
+      documentPrompt: PromptTemplate.fromTemplate(
+        'Page URL: {url}\n\nPage Content:\n{page_content}'
+      ),
+      documentSeparator: '\n------\n',
     });
 
-    chain.invoke({
+    const retriever = (await getVectorStore()).asRetriever();
+
+    const retrieverChain = await createRetrievalChain({
+      combineDocsChain,
+      retriever,
+    });
+
+    retrieverChain.invoke({
       input: currentMessageContent,
     });
 
